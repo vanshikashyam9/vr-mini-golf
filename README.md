@@ -59,7 +59,7 @@ Open [manual.html](manual.html) for detailed instructions on controls, setup, sc
 ## Credits
 
 - **Developer**: Vanshika Shyam
-- **Course**: CMPT 461, Simon Fraser University, April 2026
+- **Course**: CMPT 461, Trinity Western University, April 2026
 - **Framework**: A-Frame 1.4.2
 - **Audio**: Web Audio API (procedural)
 - **Textures**: Custom generated
