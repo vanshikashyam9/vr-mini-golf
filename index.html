@@ -7,6 +7,17 @@
   <title>VR Mini-Golf — CMPT 461</title>
   <meta name="description" content="A mobile VR mini-golf game built with A-Frame for CMPT 461 Immersive Computing.">
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script>
+    // Register components BEFORE scene parses
+    AFRAME.registerComponent('look-at-camera', {
+      tick: function () {
+        var cam = document.getElementById('main-camera');
+        if (cam && cam.object3D) {
+          this.el.object3D.lookAt(cam.object3D.position);
+        }
+      }
+    });
+  </script>
   <style>
     /* ===== OVERLAY UI STYLES ===== */
     body {
@@ -354,9 +365,9 @@
       </a-entity>
       <!-- Swing target button (gaze-interactive) -->
       <a-entity id="swing-btn-group" position="0 0.5 -2">
-        <a-circle id="swing-btn" class="gaze-target" radius="0.18"
-          material="color: #2ecc40; shader: flat; opacity: 0.85" position="0 0 0">
-        </a-circle>
+        <a-entity id="swing-btn" class="gaze-target" geometry="primitive: circle; radius: 0.18"
+          material="color: #2ecc40; shader: flat; opacity: 0.85; side: double" position="0 0 0">
+        </a-entity>
         <a-text value="SWING" color="#fff" align="center" width="1" position="0 0 0.01"></a-text>
       </a-entity>
     </a-entity>
@@ -366,14 +377,6 @@
     // =====================================================
     // REGISTER A-FRAME COMPONENTS (must be before scene loads)
     // =====================================================
-    AFRAME.registerComponent('look-at-camera', {
-      schema: { type: 'selector', default: '#main-camera' },
-      tick: function () {
-        if (this.data && this.data.object3D) {
-          this.el.object3D.lookAt(this.data.object3D.position);
-        }
-      }
-    });
 
     // =====================================================
     // GAME STATE
