@@ -760,8 +760,14 @@
       var ball = document.getElementById('golf-ball');
       var bp = ball.getAttribute('position');
       var swingGrp = document.getElementById('swing-btn-group');
-      swingGrp.setAttribute('position', bp.x + ' ' + (bp.y + 0.45) + ' ' + bp.z);
+      swingGrp.setAttribute('position', bp.x + ' ' + (bp.y + 0.5) + ' ' + bp.z);
       swingGrp.setAttribute('look-at-camera', '');
+      swingGrp.setAttribute('visible', 'true');
+    }
+
+    function hideSwingBtn() {
+      var swingGrp = document.getElementById('swing-btn-group');
+      swingGrp.setAttribute('visible', 'false');
     }
 
     function updateAimArrow() {
@@ -798,23 +804,26 @@
     // =====================================================
     function executeSwing() {
       if (GameState.ballMoving || GameState.phase !== 'playing') return;
-      if (GameState.power < 5) return;
+      if (GameState.power < 3) return;
 
       audio.playSwing();
       GameState.strokes++;
       GameState.ballMoving = true;
+      hideSwingBtn();
       updateHUD();
 
       var angleRad = THREE.MathUtils.degToRad(GameState.aimAngle);
-      var speed = GameState.power * 0.003;
+      // Speed: at 100% power → 0.18 units/frame → travels ~10+ units
+      var speed = (GameState.power / 100) * 0.18;
 
       GameState.ballVelocity = {
         x: -Math.sin(angleRad) * speed,
-        y: 0.01,
+        y: 0.005,
         z: -Math.cos(angleRad) * speed
       };
 
       GameState.power = 0;
+      GameState.powerDir = 1;
       updatePowerGauge();
     }
 
@@ -879,55 +888,63 @@
     // =====================================================
     // PHYSICS TICK
     // =====================================================
-    var FRICTION = 0.985;
-    var GRAVITY = -0.002;
     var BALL_RADIUS = 0.08;
+    // Friction: ball retains this fraction of speed each second
+    var FRICTION_PER_SEC = 0.12; // strong friction so ball stops in 2-3 sec
+    var GRAVITY = -9.8;
+    var BOUNCE_COOLDOWN = 0;
 
     function physicsTick(dt) {
       if (!GameState.ballMoving) return;
 
       var ball = document.getElementById('golf-ball');
       var pos = ball.getAttribute('position');
+      var vel = GameState.ballVelocity;
 
-      // Apply wind
-      GameState.ballVelocity.x += GameState.windX * dt;
-      GameState.ballVelocity.z += GameState.windZ * dt;
+      // Apply wind (scaled by dt for frame independence)
+      vel.x += GameState.windX * dt * 2;
+      vel.z += GameState.windZ * dt * 2;
 
-      // Apply gravity
-      GameState.ballVelocity.y += GRAVITY * dt;
+      // Apply gravity (realistic)
+      vel.y += GRAVITY * dt;
 
-      // Update position
-      pos.x += GameState.ballVelocity.x * dt * 60;
-      pos.y += GameState.ballVelocity.y * dt * 60;
-      pos.z += GameState.ballVelocity.z * dt * 60;
+      // Update position (frame-rate independent)
+      pos.x += vel.x * dt;
+      pos.y += vel.y * dt;
+      pos.z += vel.z * dt;
 
       // Ground constraint
       if (pos.y < BALL_RADIUS) {
         pos.y = BALL_RADIUS;
-        GameState.ballVelocity.y = Math.abs(GameState.ballVelocity.y) * 0.3;
-        if (Math.abs(GameState.ballVelocity.y) < 0.001) GameState.ballVelocity.y = 0;
+        vel.y = Math.abs(vel.y) * 0.2;
+        if (Math.abs(vel.y) < 0.05) vel.y = 0;
       }
 
-      // Friction
-      GameState.ballVelocity.x *= FRICTION;
-      GameState.ballVelocity.z *= FRICTION;
+      // Friction (frame-rate independent: multiply by friction^dt)
+      var frictionFactor = Math.pow(FRICTION_PER_SEC, dt);
+      vel.x *= frictionFactor;
+      vel.z *= frictionFactor;
 
       // Collision detection
-      var coll = checkCollisions(pos, BALL_RADIUS);
-      if (coll.hit) {
-        resolveCollision(pos, GameState.ballVelocity, coll.aabb);
-        audio.playBounce();
+      BOUNCE_COOLDOWN = Math.max(0, BOUNCE_COOLDOWN - dt);
+      if (BOUNCE_COOLDOWN <= 0) {
+        var coll = checkCollisions(pos, BALL_RADIUS);
+        if (coll.hit) {
+          resolveCollision(pos, vel, coll.aabb);
+          audio.playBounce();
+          BOUNCE_COOLDOWN = 0.1; // prevent multiple bounces per frame
+        }
       }
 
       // Boundary check (course limits)
       var level = LEVELS[GameState.currentLevel];
-      var halfW = level.groundSize.w / 2 - 0.2;
-      var minZ = -(level.groundSize.h) + 2 + 0.2;
-      var maxZ = 1.8;
-      if (pos.x < -halfW) { pos.x = -halfW; GameState.ballVelocity.x = Math.abs(GameState.ballVelocity.x) * 0.5; audio.playBounce(); }
-      if (pos.x > halfW) { pos.x = halfW; GameState.ballVelocity.x = -Math.abs(GameState.ballVelocity.x) * 0.5; audio.playBounce(); }
-      if (pos.z < minZ) { pos.z = minZ; GameState.ballVelocity.z = Math.abs(GameState.ballVelocity.z) * 0.5; audio.playBounce(); }
-      if (pos.z > maxZ) { pos.z = maxZ; GameState.ballVelocity.z = -Math.abs(GameState.ballVelocity.z) * 0.5; audio.playBounce(); }
+      var halfW = level.groundSize.w / 2 - 0.15;
+      var minZ = -(level.groundSize.h) + 2 + 0.15;
+      var maxZ = 1.85;
+      if (pos.x < -halfW) { pos.x = -halfW; vel.x = Math.abs(vel.x) * 0.5; }
+      if (pos.x > halfW) { pos.x = halfW; vel.x = -Math.abs(vel.x) * 0.5; }
+      if (pos.z < minZ) { pos.z = minZ; vel.z = Math.abs(vel.z) * 0.5; }
+      if (pos.z > maxZ) { pos.z = maxZ; vel.z = -Math.abs(vel.z) * 0.5; }
 
       ball.setAttribute('position', pos);
 
@@ -940,15 +957,15 @@
       }
 
       // Check if stopped
-      var speed = Math.sqrt(
-        GameState.ballVelocity.x * GameState.ballVelocity.x +
-        GameState.ballVelocity.z * GameState.ballVelocity.z
-      );
-      if (speed < 0.0005 && pos.y <= BALL_RADIUS + 0.01) {
+      var speed = Math.sqrt(vel.x * vel.x + vel.z * vel.z);
+      if (speed < 0.01 && pos.y <= BALL_RADIUS + 0.01) {
         GameState.ballMoving = false;
         GameState.ballVelocity = { x: 0, y: 0, z: 0 };
+        // Show swing button again at ball position
         updateSwingBtnPosition();
         updateAimArrow();
+        GameState.power = 0;
+        GameState.powerDir = 1;
       }
     }
 
@@ -978,10 +995,13 @@
     }
 
     // =====================================================
-    // POWER CHARGING (head tilt)
+    // POWER CHARGING (head tilt or auto-cycle)
     // =====================================================
+    // Power oscillates 0→100→0→100 so player times their swing
     function updatePowerFromTilt() {
       if (GameState.ballMoving || GameState.phase !== 'playing') return;
+
+      if (!GameState.powerDir) GameState.powerDir = 1;
 
       if (GameState.settings.controls === 'tilt') {
         var cam = document.getElementById('main-camera');
@@ -989,15 +1009,20 @@
         if (rot) {
           var pitch = rot.x;
           if (pitch < -10) {
-            GameState.power = Math.min(100, Math.max(0, (-pitch - 10) * 2));
+            GameState.power = Math.min(100, Math.max(0, (-pitch - 10) * 2.5));
           } else {
-            GameState.power = Math.max(0, GameState.power - 1);
+            GameState.power = Math.max(0, GameState.power - 2);
           }
         }
       } else {
-        // Gaze mode: auto-charge when aiming
-        if (!GameState.ballMoving) {
-          GameState.power = Math.min(100, GameState.power + 0.4);
+        // Gaze mode: power oscillates up and down like a pendulum
+        GameState.power += GameState.powerDir * 1.2;
+        if (GameState.power >= 100) {
+          GameState.power = 100;
+          GameState.powerDir = -1;
+        } else if (GameState.power <= 0) {
+          GameState.power = 0;
+          GameState.powerDir = 1;
         }
       }
 
@@ -1059,6 +1084,23 @@
     document.addEventListener('touchstart', function () {
       if (GameState.phase === 'flashscreen') {
         dismissFlashscreen();
+      }
+    });
+
+    // Spacebar to swing (desktop fallback)
+    document.addEventListener('keydown', function (e) {
+      if (e.code === 'Space' && GameState.phase === 'playing' && !GameState.ballMoving) {
+        e.preventDefault();
+        executeSwing();
+      }
+    });
+
+    // Screen tap to swing (mobile fallback - only during gameplay)
+    document.addEventListener('click', function (e) {
+      // Don't trigger if clicking on UI overlays
+      if (e.target.closest('.overlay') || e.target.closest('button')) return;
+      if (GameState.phase === 'playing' && !GameState.ballMoving) {
+        executeSwing();
       }
     });
 
