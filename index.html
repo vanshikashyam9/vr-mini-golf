@@ -1030,6 +1030,30 @@
     }
 
     // =====================================================
+    // CAMERA FOLLOW
+    // =====================================================
+    function updateCameraFollow(dt) {
+      var ball = document.getElementById('golf-ball');
+      var bp = ball.getAttribute('position');
+      var rig = document.getElementById('camera-rig');
+      var rigPos = rig.getAttribute('position');
+
+      // Target: position behind the ball (offset in z), at eye height
+      var targetX = bp.x;
+      var targetZ = bp.z + 2.5; // 2.5 units behind the ball
+      var targetY = 1.6;
+
+      // Smooth lerp toward target
+      var lerpSpeed = GameState.ballMoving ? 3.0 : 5.0;
+      var t = 1 - Math.pow(0.001, dt * lerpSpeed);
+      rigPos.x += (targetX - rigPos.x) * t;
+      rigPos.y = targetY;
+      rigPos.z += (targetZ - rigPos.z) * t;
+
+      rig.setAttribute('position', rigPos);
+    }
+
+    // =====================================================
     // MAIN GAME LOOP
     // =====================================================
     var lastTime = 0;
@@ -1041,6 +1065,7 @@
         physicsTick(dt);
         updateMovingObstacles(dt);
         updatePowerFromTilt();
+        updateCameraFollow(dt);
         if (!GameState.ballMoving) {
           updateAimArrow();
         }
