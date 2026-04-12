@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VR Mini-Golf — CMPT 461</title>
+  <meta name="description" content="A mobile VR mini-golf game built with A-Frame for CMPT 461 Immersive Computing.">
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <style>
+    /* ===== OVERLAY UI STYLES ===== */
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+
+    /* Hide A-Frame's own loading screen so our flashscreen shows instead */
+    .a-loader-title {
+      display: none !important;
+    }
+
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 999999;
+      pointer-events: all;
+      transition: opacity 0.5s;
+    }
+
+    #flashscreen {
+      background: linear-gradient(135deg, #0a3d0a 0%, #1a7a1a 40%, #0d5c0d 100%);
+      color: #fff;
+      text-align: center;
+    }
+
+    #flashscreen h1 {
+      font-size: 3em;
+      margin: 0;
+      text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.6);
+      letter-spacing: 3px;
+    }
+
+    #flashscreen .subtitle {
+      font-size: 1.3em;
+      margin-top: 10px;
+      opacity: 0.9;
+    }
+
+    #flashscreen .credits {
+      margin-top: 30px;
+      font-size: 1em;
+      opacity: 0.7;
+      line-height: 1.8;
+    }
+
+    #flashscreen .golf-icon {
+      font-size: 5em;
+      margin-bottom: 20px;
+      animation: bounce 1.5s infinite;
+    }
+
+    @keyframes bounce {
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-15px);
+      }
+    }
+
+    #flashscreen .start-hint {
+      margin-top: 40px;
+      font-size: 0.9em;
+      opacity: 0.5;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 0.3;
+      }
+
+      50% {
+        opacity: 0.8;
+      }
+    }
+
+    #setup-screen {
+      background: rgba(10, 40, 10, 0.95);
+      color: #fff;
+      text-align: center;
+    }
+
+    #setup-screen h2 {
+      font-size: 2em;
+      margin-bottom: 20px;
+    }
+
+    .setup-option {
+      margin: 12px auto;
+      padding: 12px 24px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      cursor: pointer;
+      color: #fff;
+      font-size: 1.1em;
+      min-width: 250px;
+      transition: background 0.2s;
+    }
+
+    .setup-option:hover,
+    .setup-option.active {
+      background: rgba(80, 200, 80, 0.4);
+    }
+
+    .setup-row {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin: 8px 0;
+    }
+
+    .setup-row .setup-option {
+      min-width: 100px;
+    }
+
+    #start-btn {
+      margin-top: 30px;
+      padding: 15px 50px;
+      background: #2ecc40;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.4em;
+      cursor: pointer;
+      font-weight: bold;
+      transition: transform 0.1s, background 0.2s;
+    }
+
+    #start-btn:hover {
+      background: #27ae34;
+      transform: scale(1.05);
+    }
+
+    #level-complete-screen,
+    #game-over-screen {
+      background: rgba(0, 0, 0, 0.88);
+      color: #fff;
+      text-align: center;
+    }
+
+    #level-complete-screen h2,
+    #game-over-screen h2 {
+      font-size: 2.5em;
+      color: #2ecc40;
+    }
+
+    .result-stat {
+      font-size: 1.4em;
+      margin: 10px 0;
+    }
+
+    .next-btn {
+      margin-top: 25px;
+      padding: 14px 40px;
+      background: #2ecc40;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.2em;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .next-btn:hover {
+      background: #27ae34;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Make a-scene fill the viewport behind the overlays */
+    a-scene {
+      position: fixed !important;
+      top: 0;
+      left: 0;
+      width: 100% !important;
+      height: 100% !important;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ===== FLASHSCREEN OVERLAY ===== -->
+  <div id="flashscreen" class="overlay">
+    <div class="golf-icon">⛳</div>
+    <h1>VR MINI-GOLF</h1>
+    <div class="subtitle">Mobile VR Experience</div>
+    <div class="credits">
+      Vanshika Shyam<br>
+      CMPT 461 — Immersive Computing<br>
+      Trinity Western University<br>
+      April 2026
+    </div>
+    <div class="start-hint">Tap anywhere or wait to continue...</div>
+  </div>
+
+  <!-- ===== SETUP SCREEN ===== -->
+  <div id="setup-screen" class="overlay hidden">
+    <h2>⚙️ Game Setup</h2>
+
+    <div style="margin: 8px 0; font-size: 1.1em; opacity: 0.7;">Background Music</div>
+    <div class="setup-row">
+      <div class="setup-option active" id="bgm-on" onclick="setOption('bgm','on')">🔊 On</div>
+      <div class="setup-option" id="bgm-off" onclick="setOption('bgm','off')">🔇 Off</div>
+    </div>
+
+    <div style="margin: 8px 0; font-size: 1.1em; opacity: 0.7;">Sound Effects</div>
+    <div class="setup-row">
+      <div class="setup-option active" id="sfx-on" onclick="setOption('sfx','on')">🔊 On</div>
+      <div class="setup-option" id="sfx-off" onclick="setOption('sfx','off')">🔇 Off</div>
+    </div>
+
+    <div style="margin: 8px 0; font-size: 1.1em; opacity: 0.7;">Difficulty</div>
+    <div class="setup-row">
+      <div class="setup-option active" id="diff-easy" onclick="setOption('difficulty','easy')">Easy</div>
+      <div class="setup-option" id="diff-hard" onclick="setOption('difficulty','hard')">Hard</div>
+    </div>
+
+    <div style="margin: 8px 0; font-size: 1.1em; opacity: 0.7;">Control Mode</div>
+    <div class="setup-row">
+      <div class="setup-option active" id="ctrl-gaze" onclick="setOption('controls','gaze')">Gaze Only</div>
+      <div class="setup-option" id="ctrl-tilt" onclick="setOption('controls','tilt')">Gaze + Tilt</div>
+    </div>
+
+    <button id="start-btn" onclick="startGame()">▶ START GAME</button>
+  </div>
+
+  <!-- ===== LEVEL COMPLETE OVERLAY ===== -->
+  <div id="level-complete-screen" class="overlay hidden">
+    <h2>🏆 Hole Complete!</h2>
+    <div class="result-stat" id="lc-hole">Hole: 1</div>
+    <div class="result-stat" id="lc-strokes">Strokes: 0</div>
+    <div class="result-stat" id="lc-par">Par: 3</div>
+    <button class="next-btn" id="next-level-btn" onclick="nextLevel()">Next Hole →</button>
+  </div>
+
+  <!-- ===== GAME OVER OVERLAY ===== -->
+  <div id="game-over-screen" class="overlay hidden">
+    <h2>🏁 Game Over!</h2>
+    <div class="result-stat" id="go-total">Total Strokes: 0</div>
+    <div class="result-stat" id="go-par">Total Par: 7</div>
+    <div class="result-stat" id="go-rating"></div>
+    <button class="next-btn" onclick="restartGame()">🔄 Play Again</button>
+  </div>
+
+  <!-- ===== A-FRAME SCENE ===== -->
+  <a-scene id="scene" vr-mode-ui="enabled: true" loading-screen="enabled: false"
+    renderer="antialias: true; colorManagement: true">
+
+    <!-- Asset Management -->
+    <a-assets timeout="30000">
+      <img id="tex-turf" src="assets/textures/turf.png" crossorigin="anonymous">
+      <img id="tex-desert" src="assets/textures/desert.png" crossorigin="anonymous">
+      <img id="tex-brick" src="assets/textures/brick.png" crossorigin="anonymous">
+      <img id="tex-wood" src="assets/textures/wood.png" crossorigin="anonymous">
+      <img id="tex-sky" src="assets/textures/sky.png" crossorigin="anonymous">
+      <img id="tex-ball" src="assets/textures/ball.png" crossorigin="anonymous">
+    </a-assets>
+
+    <!-- Sky -->
+    <a-sky id="sky" src="#tex-sky" rotation="0 0 0"></a-sky>
+
+    <!-- Ambient + Directional Light -->
+    <a-light type="ambient" color="#bbddbb" intensity="0.5"></a-light>
+    <a-light type="directional" color="#ffffff" intensity="0.8" position="2 4 1" castShadow="true"></a-light>
+
+    <!-- Camera Rig -->
+    <a-entity id="camera-rig" position="0 1.6 0">
+      <a-camera id="main-camera" look-controls="pointerLockEnabled: false; touchEnabled: false"
+        wasd-controls="enabled: false">
+        <!-- Gaze cursor / reticle -->
+        <a-entity id="gaze-cursor" cursor="fuse: true; fuseTimeout: 1500" raycaster="objects: .gaze-target; far: 30"
+          position="0 0 -1" geometry="primitive: ring; radiusInner: 0.015; radiusOuter: 0.025"
+          material="color: #2ecc40; shader: flat; opacity: 0.8">
+        </a-entity>
+
+        <!-- Scoreboard HUD (always visible, attached to camera) -->
+        <a-entity id="hud" position="0 0.35 -1">
+          <a-entity id="hud-bg" geometry="primitive: plane; width: 0.7; height: 0.18"
+            material="color: #000; opacity: 0.55; shader: flat" position="0 0 -0.001"></a-entity>
+          <a-text id="hud-text" value="Hole 1 | Strokes: 0 | Total: 0" color="#2ecc40" align="center" width="1.4"
+            position="0 0.01 0"></a-text>
+        </a-entity>
+
+        <!-- Power Gauge HUD -->
+        <a-entity id="power-hud" position="0.4 -0.25 -1">
+          <a-entity geometry="primitive: plane; width: 0.05; height: 0.3"
+            material="color: #333; opacity: 0.6; shader: flat" position="0 0 -0.001"></a-entity>
+          <a-entity id="power-fill" geometry="primitive: plane; width: 0.04; height: 0.0"
+            material="color: #ff4444; shader: flat" position="0 -0.14 0"></a-entity>
+          <a-text value="PWR" color="#fff" align="center" width="0.6" position="0 -0.20 0"></a-text>
+        </a-entity>
+
+        <!-- Aim mode indicator -->
+        <a-text id="aim-status" value="" color="#ffcc00" align="center" width="1" position="0 -0.30 -1"></a-text>
+      </a-camera>
+    </a-entity>
+
+    <!-- ===== GAME WORLD CONTAINER ===== -->
+    <a-entity id="game-world">
+      <!-- Ground (swapped per level) -->
+      <a-entity id="ground"></a-entity>
+      <!-- Walls container -->
+      <a-entity id="walls"></a-entity>
+      <!-- Obstacles container -->
+      <a-entity id="obstacles"></a-entity>
+      <!-- Golf Ball -->
+      <a-sphere id="golf-ball" radius="0.08" src="#tex-ball" position="0 0.08 -2" shadow="cast: true">
+      </a-sphere>
+      <!-- Hole -->
+      <a-entity id="hole-group">
+        <a-cylinder id="hole" radius="0.15" height="0.02" color="#111" material="shader: flat; color: #111"
+          position="0 0.01 -12"></a-cylinder>
+        <!-- Flag pole -->
+        <a-cylinder id="flag-pole" radius="0.02" height="0.8" color="#ccc" position="0 0.4 -12"></a-cylinder>
+        <!-- Flag -->
+        <a-entity id="flag" geometry="primitive: plane; width: 0.3; height: 0.15"
+          material="color: #ff2222; side: double; shader: flat" position="0.15 0.75 -12" rotation="0 0 0">
+        </a-entity>
+      </a-entity>
+      <!-- Aim arrow -->
+      <a-entity id="aim-arrow" visible="true">
+        <a-cone color="#ffcc00" radius-bottom="0.03" radius-top="0" height="0.5" rotation="-90 0 0" position="0 0.04 0"
+          material="shader: flat; opacity: 0.7"></a-cone>
+        <a-entity id="aim-line" geometry="primitive: plane; width: 0.02; height: 2"
+          material="color: #ffcc00; shader: flat; opacity: 0.35" rotation="-90 0 0" position="0 0.02 -1.2"></a-entity>
+      </a-entity>
+      <!-- Swing target button (gaze-interactive) -->
+      <a-entity id="swing-btn-group" position="0 0.5 -2">
+        <a-circle id="swing-btn" class="gaze-target" radius="0.18"
+          material="color: #2ecc40; shader: flat; opacity: 0.85" position="0 0 0">
+        </a-circle>
+        <a-text value="SWING" color="#fff" align="center" width="1" position="0 0 0.01"></a-text>
+      </a-entity>
+    </a-entity>
+  </a-scene>
+
+  <script>
+    // =====================================================
+    // REGISTER A-FRAME COMPONENTS (must be before scene loads)
+    // =====================================================
+    AFRAME.registerComponent('look-at-camera', {
+      schema: { type: 'selector', default: '#main-camera' },
+      tick: function () {
+        if (this.data && this.data.object3D) {
+          this.el.object3D.lookAt(this.data.object3D.position);
+        }
+      }
+    });
+
+    // =====================================================
+    // GAME STATE
+    // =====================================================
+    const GameState = {
+      phase: 'flashscreen',
+      settings: { bgm: true, sfx: true, difficulty: 'easy', controls: 'gaze' },
+      currentLevel: 0,
+      strokes: 0,
+      totalStrokes: 0,
+      levelStrokes: [],
+      ballMoving: false,
+      ballVelocity: { x: 0, y: 0, z: 0 },
+      power: 0,
+      aimAngle: 0,
+      charging: false,
+      windX: 0,
+      windZ: 0,
+      sceneReady: false
+    };
+
+    // =====================================================
+    // LEVEL DEFINITIONS
+    // =====================================================
+    const LEVELS = [
+      {
+        name: 'Park Course',
+        par: 3,
+        groundTexture: '#tex-turf',
+        groundColor: '#44aa44',
+        groundSize: { w: 6, h: 20 },
+        ballStart: { x: 0, y: 0.08, z: -2 },
+        holePos: { x: 0, y: 0.01, z: -14 },
+        cameraPos: { x: 0, y: 1.6, z: 0 },
+        wind: { x: 0.002, z: 0 },
+        windHard: { x: 0.005, z: 0.002 },
+        walls: [
+          { pos: '-3 0.3 -8', scale: '0.2 0.6 20', tex: '#tex-wood' },
+          { pos: '3 0.3 -8', scale: '0.2 0.6 20', tex: '#tex-wood' },
+          { pos: '0 0.3 -18', scale: '6.2 0.6 0.2', tex: '#tex-wood' },
+          { pos: '0 0.3 1', scale: '6.2 0.6 0.2', tex: '#tex-wood' }
+        ],
+        obstacles: [
+          { pos: '-0.8 0.25 -6', scale: '0.8 0.5 0.8', tex: '#tex-brick', moving: false },
+          { pos: '0.8 0.25 -10', scale: '1.0 0.5 0.6', tex: '#tex-brick', moving: false }
+        ]
+      },
+      {
+        name: 'Canyon Course',
+        par: 4,
+        groundTexture: '#tex-desert',
+        groundColor: '#c2a04e',
+        groundSize: { w: 7, h: 26 },
+        ballStart: { x: 0, y: 0.08, z: -2 },
+        holePos: { x: 1.5, y: 0.01, z: -20 },
+        cameraPos: { x: 0, y: 1.6, z: 0 },
+        wind: { x: -0.002, z: 0.001 },
+        windHard: { x: -0.006, z: 0.004 },
+        walls: [
+          { pos: '-3.5 0.4 -10', scale: '0.2 0.8 26', tex: '#tex-wood' },
+          { pos: '3.5 0.4 -10', scale: '0.2 0.8 26', tex: '#tex-wood' },
+          { pos: '0 0.4 -24', scale: '7.2 0.8 0.2', tex: '#tex-wood' },
+          { pos: '0 0.4 1', scale: '7.2 0.8 0.2', tex: '#tex-wood' }
+        ],
+        obstacles: [
+          { pos: '-1.2 0.3 -6', scale: '1.0 0.6 0.6', tex: '#tex-brick', moving: false },
+          { pos: '0 0.15 -10', scale: '2.5 0.3 1.5', tex: '#tex-wood', moving: false, rotation: '-8 0 0' },
+          { pos: '0 0.35 -15', scale: '1.5 0.7 0.5', tex: '#tex-brick', moving: true, moveAxis: 'x', moveRange: 2, moveSpeed: 0.8 },
+          { pos: '0.5 0.25 -18', scale: '0.6 0.5 0.6', tex: '#tex-brick', moving: false }
+        ]
+      }
+    ];
+
+    // =====================================================
+    // AUDIO MANAGER (Web Audio API)
+    // =====================================================
+    class AudioManager {
+      constructor() {
+        this.ctx = null;
+        this.bgmNode = null;
+        this.bgmPlaying = false;
+      }
+
+      init() {
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
+      ensureContext() {
+        if (!this.ctx) this.init();
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+      }
+
+      playTone(freq, duration, type, volume) {
+        type = type || 'sine';
+        volume = volume || 0.15;
+        if (!GameState.settings.sfx) return;
+        this.ensureContext();
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          gain.gain.setValueAtTime(volume, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch (e) { /* ignore audio errors */ }
+      }
+
+      playSwing() { this.playTone(300, 0.2, 'sawtooth', 0.1); }
+
+      playHit() {
+        this.playTone(150, 0.15, 'triangle', 0.12);
+        setTimeout(() => this.playTone(180, 0.1, 'triangle', 0.08), 50);
+      }
+
+      playHoleIn() {
+        this.playTone(523, 0.15, 'sine', 0.2);
+        setTimeout(() => this.playTone(659, 0.15, 'sine', 0.2), 150);
+        setTimeout(() => this.playTone(784, 0.3, 'sine', 0.2), 300);
+      }
+
+      playBounce() { this.playTone(200, 0.1, 'square', 0.06); }
+
+      startBGM() {
+        if (!GameState.settings.bgm || this.bgmPlaying) return;
+        this.ensureContext();
+        this.bgmPlaying = true;
+        this._loopBGM();
+      }
+
+      _loopBGM() {
+        if (!this.bgmPlaying || !GameState.settings.bgm) { this.bgmPlaying = false; return; }
+        try {
+          const now = this.ctx.currentTime;
+          const notes = [262, 294, 330, 349, 330, 294, 262, 247];
+          const noteLen = 0.45;
+          notes.forEach((freq, i) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + i * noteLen);
+            gain.gain.setValueAtTime(0.04, now + i * noteLen);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + (i + 1) * noteLen);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now + i * noteLen);
+            osc.stop(now + (i + 1) * noteLen);
+          });
+          const totalDur = notes.length * noteLen;
+          this._bgmTimeout = setTimeout(() => this._loopBGM(), totalDur * 1000);
+        } catch (e) { /* ignore */ }
+      }
+
+      stopBGM() {
+        this.bgmPlaying = false;
+        if (this._bgmTimeout) clearTimeout(this._bgmTimeout);
+      }
+    }
+
+    const audio = new AudioManager();
+
+    // =====================================================
+    // SETUP UI LOGIC
+    // =====================================================
+    function setOption(category, value) {
+      if (category === 'bgm') {
+        GameState.settings.bgm = (value === 'on');
+        document.getElementById('bgm-on').classList.toggle('active', value === 'on');
+        document.getElementById('bgm-off').classList.toggle('active', value === 'off');
+      } else if (category === 'sfx') {
+        GameState.settings.sfx = (value === 'on');
+        document.getElementById('sfx-on').classList.toggle('active', value === 'on');
+        document.getElementById('sfx-off').classList.toggle('active', value === 'off');
+      } else if (category === 'difficulty') {
+        GameState.settings.difficulty = value;
+        document.getElementById('diff-easy').classList.toggle('active', value === 'easy');
+        document.getElementById('diff-hard').classList.toggle('active', value === 'hard');
+      } else if (category === 'controls') {
+        GameState.settings.controls = value;
+        document.getElementById('ctrl-gaze').classList.toggle('active', value === 'gaze');
+        document.getElementById('ctrl-tilt').classList.toggle('active', value === 'tilt');
+      }
+    }
+
+    // =====================================================
+    // SCREEN TRANSITIONS
+    // =====================================================
+    function showScreen(id) {
+      ['flashscreen', 'setup-screen', 'level-complete-screen', 'game-over-screen'].forEach(s => {
+        document.getElementById(s).classList.add('hidden');
+      });
+      if (id) document.getElementById(id).classList.remove('hidden');
+    }
+
+    // Flashscreen dismiss handlers
+    function dismissFlashscreen() {
+      if (GameState.phase === 'flashscreen') {
+        GameState.phase = 'setup';
+        showScreen('setup-screen');
+      }
+    }
+
+    // Auto-dismiss after 4.5 seconds
+    setTimeout(dismissFlashscreen, 4500);
+
+    // Tap/click to dismiss immediately
+    document.getElementById('flashscreen').addEventListener('click', dismissFlashscreen);
+    document.getElementById('flashscreen').addEventListener('touchstart', dismissFlashscreen);
+
+    // =====================================================
+    // GAME START / LEVEL MANAGEMENT
+    // =====================================================
+    function startGame() {
+      audio.ensureContext();
+      GameState.phase = 'playing';
+      GameState.currentLevel = 0;
+      GameState.totalStrokes = 0;
+      GameState.levelStrokes = [];
+      showScreen(null);
+      loadLevel(0);
+      audio.startBGM();
+    }
+
+    function loadLevel(levelIndex) {
+      const level = LEVELS[levelIndex];
+      if (!level) return;
+
+      GameState.currentLevel = levelIndex;
+      GameState.strokes = 0;
+      GameState.ballMoving = false;
+      GameState.ballVelocity = { x: 0, y: 0, z: 0 };
+      GameState.power = 0;
+
+      // Set wind
+      const w = GameState.settings.difficulty === 'hard' ? level.windHard : level.wind;
+      GameState.windX = w.x;
+      GameState.windZ = w.z;
+
+      // Ground
+      const groundEl = document.getElementById('ground');
+      groundEl.innerHTML = '';
+      const g = document.createElement('a-plane');
+      g.setAttribute('rotation', '-90 0 0');
+      g.setAttribute('width', level.groundSize.w);
+      g.setAttribute('height', level.groundSize.h);
+      g.setAttribute('position', '0 0 ' + (-level.groundSize.h / 2 + 2));
+      g.setAttribute('material', 'src: ' + level.groundTexture + '; repeat: ' + (level.groundSize.w / 2) + ' ' + (level.groundSize.h / 2) + '; roughness: 1');
+      g.setAttribute('shadow', 'receive: true');
+      groundEl.appendChild(g);
+
+      // Walls
+      const wallsEl = document.getElementById('walls');
+      wallsEl.innerHTML = '';
+      level.walls.forEach(function (w) {
+        const wall = document.createElement('a-box');
+        wall.setAttribute('position', w.pos);
+        wall.setAttribute('scale', w.scale);
+        wall.setAttribute('src', w.tex);
+        wall.setAttribute('class', 'wall collidable');
+        wall.setAttribute('shadow', 'cast: true; receive: true');
+        wallsEl.appendChild(wall);
+      });
+
+      // Obstacles
+      const obstaclesEl = document.getElementById('obstacles');
+      obstaclesEl.innerHTML = '';
+      level.obstacles.forEach(function (o, i) {
+        const obs = document.createElement('a-box');
+        obs.setAttribute('position', o.pos);
+        obs.setAttribute('scale', o.scale);
+        obs.setAttribute('src', o.tex);
+        obs.setAttribute('class', 'obstacle collidable');
+        obs.setAttribute('shadow', 'cast: true; receive: true');
+        if (o.rotation) obs.setAttribute('rotation', o.rotation);
+        if (o.moving) {
+          obs.setAttribute('id', 'moving-obs-' + i);
+          obs.dataset.moveAxis = o.moveAxis;
+          obs.dataset.moveRange = o.moveRange;
+          obs.dataset.moveSpeed = o.moveSpeed;
+          obs.dataset.moveOrigin = o.pos.split(' ')[o.moveAxis === 'x' ? 0 : 2];
+          obs.dataset.moveTime = '0';
+        }
+        obstaclesEl.appendChild(obs);
+      });
+
+      // Ball position
+      const ball = document.getElementById('golf-ball');
+      ball.setAttribute('position', level.ballStart.x + ' ' + level.ballStart.y + ' ' + level.ballStart.z);
+
+      // Hole position
+      const hp = level.holePos;
+      document.getElementById('hole').setAttribute('position', hp.x + ' ' + hp.y + ' ' + hp.z);
+      document.getElementById('flag-pole').setAttribute('position', hp.x + ' 0.4 ' + hp.z);
+      document.getElementById('flag').setAttribute('position', (hp.x + 0.15) + ' 0.75 ' + hp.z);
+
+      // Camera
+      const rig = document.getElementById('camera-rig');
+      rig.setAttribute('position', level.cameraPos.x + ' ' + level.cameraPos.y + ' ' + level.cameraPos.z);
+
+      // Update HUD
+      updateHUD();
+
+      // Place swing button near ball
+      updateSwingBtnPosition();
+
+      // Update aim arrow
+      updateAimArrow();
+    }
+
+    function nextLevel() {
+      GameState.levelStrokes.push(GameState.strokes);
+      GameState.totalStrokes += GameState.strokes;
+
+      if (GameState.currentLevel + 1 < LEVELS.length) {
+        showScreen(null);
+        GameState.phase = 'playing';
+        loadLevel(GameState.currentLevel + 1);
+      } else {
+        showGameOver();
+      }
+    }
+
+    function showLevelComplete() {
+      GameState.phase = 'levelComplete';
+      const level = LEVELS[GameState.currentLevel];
+      document.getElementById('lc-hole').textContent = 'Hole: ' + (GameState.currentLevel + 1) + ' — "' + level.name + '"';
+      document.getElementById('lc-strokes').textContent = 'Strokes: ' + GameState.strokes;
+      document.getElementById('lc-par').textContent = 'Par: ' + level.par;
+
+      if (GameState.currentLevel + 1 >= LEVELS.length) {
+        document.getElementById('next-level-btn').textContent = 'See Results →';
+      } else {
+        document.getElementById('next-level-btn').textContent = 'Next Hole →';
+      }
+      showScreen('level-complete-screen');
+    }
+
+    function showGameOver() {
+      GameState.phase = 'gameOver';
+      GameState.levelStrokes.push(GameState.strokes);
+      GameState.totalStrokes += GameState.strokes;
+
+      const totalPar = LEVELS.reduce(function (s, l) { return s + l.par; }, 0);
+      document.getElementById('go-total').textContent = 'Total Strokes: ' + GameState.totalStrokes;
+      document.getElementById('go-par').textContent = 'Total Par: ' + totalPar;
+
+      const diff = GameState.totalStrokes - totalPar;
+      var rating = '';
+      if (diff <= -2) rating = '🌟 Amazing! Well under par!';
+      else if (diff <= 0) rating = '🏅 Great job! At or under par!';
+      else if (diff <= 2) rating = '👍 Nice game! Close to par.';
+      else rating = '⛳ Keep practicing!';
+      document.getElementById('go-rating').textContent = rating;
+
+      audio.stopBGM();
+      showScreen('game-over-screen');
+    }
+
+    function restartGame() {
+      startGame();
+    }
+
+    // =====================================================
+    // HUD UPDATE
+    // =====================================================
+    function updateHUD() {
+      var hudText = document.getElementById('hud-text');
+      var level = LEVELS[GameState.currentLevel];
+      hudText.setAttribute('value',
+        'Hole ' + (GameState.currentLevel + 1) + ' | Strokes: ' + GameState.strokes + ' | Total: ' + GameState.totalStrokes + ' | Par: ' + level.par
+      );
+    }
+
+    // =====================================================
+    // AIM & POWER LOGIC
+    // =====================================================
+    function updateSwingBtnPosition() {
+      var ball = document.getElementById('golf-ball');
+      var bp = ball.getAttribute('position');
+      var swingGrp = document.getElementById('swing-btn-group');
+      swingGrp.setAttribute('position', bp.x + ' ' + (bp.y + 0.45) + ' ' + bp.z);
+      swingGrp.setAttribute('look-at-camera', '');
+    }
+
+    function updateAimArrow() {
+      var ball = document.getElementById('golf-ball');
+      var bp = ball.getAttribute('position');
+      var arrow = document.getElementById('aim-arrow');
+      arrow.setAttribute('position', bp.x + ' ' + bp.y + ' ' + bp.z);
+
+      // Aim direction based on camera yaw
+      var cam = document.getElementById('main-camera');
+      var rot = cam.getAttribute('rotation');
+      if (rot) {
+        GameState.aimAngle = rot.y;
+        arrow.setAttribute('rotation', '0 ' + rot.y + ' 0');
+      }
+    }
+
+    function updatePowerGauge() {
+      var fill = document.getElementById('power-fill');
+      var maxH = 0.28;
+      var h = maxH * (GameState.power / 100);
+      fill.setAttribute('geometry', 'primitive: plane; width: 0.04; height: ' + h);
+      fill.setAttribute('position', '0 ' + (-0.14 + h / 2) + ' 0');
+
+      var color;
+      if (GameState.power < 40) color = '#2ecc40';
+      else if (GameState.power < 70) color = '#f1c40f';
+      else color = '#e74c3c';
+      fill.setAttribute('material', 'color: ' + color + '; shader: flat');
+    }
+
+    // =====================================================
+    // SWING EXECUTION
+    // =====================================================
+    function executeSwing() {
+      if (GameState.ballMoving || GameState.phase !== 'playing') return;
+      if (GameState.power < 5) return;
+
+      audio.playSwing();
+      GameState.strokes++;
+      GameState.ballMoving = true;
+      updateHUD();
+
+      var angleRad = THREE.MathUtils.degToRad(GameState.aimAngle);
+      var speed = GameState.power * 0.003;
+
+      GameState.ballVelocity = {
+        x: -Math.sin(angleRad) * speed,
+        y: 0.01,
+        z: -Math.cos(angleRad) * speed
+      };
+
+      GameState.power = 0;
+      updatePowerGauge();
+    }
+
+    // =====================================================
+    // COLLISION DETECTION (AABB)
+    // =====================================================
+    function getAABB(el) {
+      var pos = el.getAttribute('position');
+      var scale = el.getAttribute('scale') || { x: 1, y: 1, z: 1 };
+      var hw = (typeof scale.x === 'number' ? scale.x : parseFloat(scale.x)) / 2;
+      var hh = (typeof scale.y === 'number' ? scale.y : parseFloat(scale.y)) / 2;
+      var hd = (typeof scale.z === 'number' ? scale.z : parseFloat(scale.z)) / 2;
+      return {
+        minX: pos.x - hw, maxX: pos.x + hw,
+        minY: pos.y - hh, maxY: pos.y + hh,
+        minZ: pos.z - hd, maxZ: pos.z + hd
+      };
+    }
+
+    function checkCollisions(ballPos, ballRadius) {
+      var collidables = document.querySelectorAll('.collidable');
+      for (var i = 0; i < collidables.length; i++) {
+        var el = collidables[i];
+        var aabb = getAABB(el);
+        if (ballPos.x + ballRadius > aabb.minX && ballPos.x - ballRadius < aabb.maxX &&
+          ballPos.y + ballRadius > aabb.minY && ballPos.y - ballRadius < aabb.maxY &&
+          ballPos.z + ballRadius > aabb.minZ && ballPos.z - ballRadius < aabb.maxZ) {
+          return { hit: true, aabb: aabb, el: el };
+        }
+      }
+      return { hit: false };
+    }
+
+    function resolveCollision(ballPos, velocity, aabb) {
+      var dLeft = Math.abs(ballPos.x - aabb.minX);
+      var dRight = Math.abs(ballPos.x - aabb.maxX);
+      var dFront = Math.abs(ballPos.z - aabb.minZ);
+      var dBack = Math.abs(ballPos.z - aabb.maxZ);
+
+      var minD = Math.min(dLeft, dRight, dFront, dBack);
+      var bounce = 0.6;
+
+      if (minD === dLeft || minD === dRight) {
+        velocity.x = -velocity.x * bounce;
+      } else {
+        velocity.z = -velocity.z * bounce;
+      }
+    }
+
+    // =====================================================
+    // HOLE DETECTION
+    // =====================================================
+    function checkHole(ballPos) {
+      var level = LEVELS[GameState.currentLevel];
+      var hp = level.holePos;
+      var dx = ballPos.x - hp.x;
+      var dz = ballPos.z - hp.z;
+      var dist = Math.sqrt(dx * dx + dz * dz);
+      return dist < 0.15;
+    }
+
+    // =====================================================
+    // PHYSICS TICK
+    // =====================================================
+    var FRICTION = 0.985;
+    var GRAVITY = -0.002;
+    var BALL_RADIUS = 0.08;
+
+    function physicsTick(dt) {
+      if (!GameState.ballMoving) return;
+
+      var ball = document.getElementById('golf-ball');
+      var pos = ball.getAttribute('position');
+
+      // Apply wind
+      GameState.ballVelocity.x += GameState.windX * dt;
+      GameState.ballVelocity.z += GameState.windZ * dt;
+
+      // Apply gravity
+      GameState.ballVelocity.y += GRAVITY * dt;
+
+      // Update position
+      pos.x += GameState.ballVelocity.x * dt * 60;
+      pos.y += GameState.ballVelocity.y * dt * 60;
+      pos.z += GameState.ballVelocity.z * dt * 60;
+
+      // Ground constraint
+      if (pos.y < BALL_RADIUS) {
+        pos.y = BALL_RADIUS;
+        GameState.ballVelocity.y = Math.abs(GameState.ballVelocity.y) * 0.3;
+        if (Math.abs(GameState.ballVelocity.y) < 0.001) GameState.ballVelocity.y = 0;
+      }
+
+      // Friction
+      GameState.ballVelocity.x *= FRICTION;
+      GameState.ballVelocity.z *= FRICTION;
+
+      // Collision detection
+      var coll = checkCollisions(pos, BALL_RADIUS);
+      if (coll.hit) {
+        resolveCollision(pos, GameState.ballVelocity, coll.aabb);
+        audio.playBounce();
+      }
+
+      // Boundary check (course limits)
+      var level = LEVELS[GameState.currentLevel];
+      var halfW = level.groundSize.w / 2 - 0.2;
+      var minZ = -(level.groundSize.h) + 2 + 0.2;
+      var maxZ = 1.8;
+      if (pos.x < -halfW) { pos.x = -halfW; GameState.ballVelocity.x = Math.abs(GameState.ballVelocity.x) * 0.5; audio.playBounce(); }
+      if (pos.x > halfW) { pos.x = halfW; GameState.ballVelocity.x = -Math.abs(GameState.ballVelocity.x) * 0.5; audio.playBounce(); }
+      if (pos.z < minZ) { pos.z = minZ; GameState.ballVelocity.z = Math.abs(GameState.ballVelocity.z) * 0.5; audio.playBounce(); }
+      if (pos.z > maxZ) { pos.z = maxZ; GameState.ballVelocity.z = -Math.abs(GameState.ballVelocity.z) * 0.5; audio.playBounce(); }
+
+      ball.setAttribute('position', pos);
+
+      // Check hole
+      if (checkHole(pos)) {
+        GameState.ballMoving = false;
+        audio.playHoleIn();
+        setTimeout(function () { showLevelComplete(); }, 800);
+        return;
+      }
+
+      // Check if stopped
+      var speed = Math.sqrt(
+        GameState.ballVelocity.x * GameState.ballVelocity.x +
+        GameState.ballVelocity.z * GameState.ballVelocity.z
+      );
+      if (speed < 0.0005 && pos.y <= BALL_RADIUS + 0.01) {
+        GameState.ballMoving = false;
+        GameState.ballVelocity = { x: 0, y: 0, z: 0 };
+        updateSwingBtnPosition();
+        updateAimArrow();
+      }
+    }
+
+    // =====================================================
+    // MOVING OBSTACLES
+    // =====================================================
+    function updateMovingObstacles(dt) {
+      var movingObs = document.querySelectorAll('[id^="moving-obs-"]');
+      for (var i = 0; i < movingObs.length; i++) {
+        var el = movingObs[i];
+        var axis = el.dataset.moveAxis;
+        var range = parseFloat(el.dataset.moveRange);
+        var speed = parseFloat(el.dataset.moveSpeed);
+        var origin = parseFloat(el.dataset.moveOrigin);
+        var t = parseFloat(el.dataset.moveTime) + dt * speed;
+        el.dataset.moveTime = t;
+
+        var offset = Math.sin(t) * range;
+        var pos = el.getAttribute('position');
+        if (axis === 'x') {
+          pos.x = origin + offset;
+        } else {
+          pos.z = origin + offset;
+        }
+        el.setAttribute('position', pos);
+      }
+    }
+
+    // =====================================================
+    // POWER CHARGING (head tilt)
+    // =====================================================
+    function updatePowerFromTilt() {
+      if (GameState.ballMoving || GameState.phase !== 'playing') return;
+
+      if (GameState.settings.controls === 'tilt') {
+        var cam = document.getElementById('main-camera');
+        var rot = cam.getAttribute('rotation');
+        if (rot) {
+          var pitch = rot.x;
+          if (pitch < -10) {
+            GameState.power = Math.min(100, Math.max(0, (-pitch - 10) * 2));
+          } else {
+            GameState.power = Math.max(0, GameState.power - 1);
+          }
+        }
+      } else {
+        // Gaze mode: auto-charge when aiming
+        if (!GameState.ballMoving) {
+          GameState.power = Math.min(100, GameState.power + 0.4);
+        }
+      }
+
+      updatePowerGauge();
+    }
+
+    // =====================================================
+    // MAIN GAME LOOP
+    // =====================================================
+    var lastTime = 0;
+    function gameLoop(timestamp) {
+      var dt = Math.min((timestamp - lastTime) / 1000, 0.05);
+      lastTime = timestamp;
+
+      if (GameState.phase === 'playing') {
+        physicsTick(dt);
+        updateMovingObstacles(dt);
+        updatePowerFromTilt();
+        if (!GameState.ballMoving) {
+          updateAimArrow();
+        }
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+    requestAnimationFrame(gameLoop);
+
+    // =====================================================
+    // SWING BUTTON GAZE INTERACTION (wait for scene ready)
+    // =====================================================
+    var sceneEl = document.getElementById('scene');
+    sceneEl.addEventListener('loaded', function () {
+      GameState.sceneReady = true;
+      console.log('A-Frame scene loaded successfully');
+
+      var swingBtn = document.getElementById('swing-btn');
+      if (swingBtn) {
+        // Fuse-based click (dwell complete)
+        swingBtn.addEventListener('click', function () {
+          if (GameState.phase === 'playing' && !GameState.ballMoving) {
+            executeSwing();
+          }
+        });
+
+        // Hover color changes
+        swingBtn.addEventListener('mouseenter', function () {
+          this.setAttribute('material', 'color', '#ff4444');
+        });
+        swingBtn.addEventListener('mouseleave', function () {
+          this.setAttribute('material', 'color', '#2ecc40');
+        });
+        swingBtn.addEventListener('fusing', function () {
+          this.setAttribute('material', 'color', '#ffaa00');
+        });
+      }
+    });
+
+    // Also allow touch to dismiss flashscreen on mobile
+    document.addEventListener('touchstart', function () {
+      if (GameState.phase === 'flashscreen') {
+        dismissFlashscreen();
+      }
+    });
+
+  </script>
+</body>
+
+</html>

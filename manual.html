@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VR Mini-Golf — Game Manual</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --card: #161b22;
+            --border: #30363d;
+            --text: #e6edf3;
+            --muted: #8b949e;
+            --accent: #2ecc40;
+            --accent2: #58a6ff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 860px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2.4em;
+            text-align: center;
+            margin: 30px 0 10px;
+            color: var(--accent);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--muted);
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+
+        h2 {
+            font-size: 1.5em;
+            margin: 30px 0 12px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border);
+            color: var(--accent2);
+        }
+
+        h3 {
+            font-size: 1.15em;
+            margin: 18px 0 8px;
+            color: var(--text);
+        }
+
+        p,
+        li {
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        ul,
+        ol {
+            padding-left: 24px;
+        }
+
+        code {
+            background: var(--card);
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.92em;
+            border: 1px solid var(--border);
+        }
+
+        pre {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            overflow-x: auto;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9em;
+            margin: 10px 0 16px;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 16px 0;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-right: 6px;
+        }
+
+        .badge-green {
+            background: #1a4d2e;
+            color: #2ecc40;
+        }
+
+        .badge-blue {
+            background: #0d2744;
+            color: #58a6ff;
+        }
+
+        .badge-yellow {
+            background: #3d2e00;
+            color: #f1c40f;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+        }
+
+        th,
+        td {
+            padding: 10px 14px;
+            text-align: left;
+            border: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--card);
+            color: var(--accent);
+        }
+
+        .tip {
+            background: #0d2744;
+            border-left: 4px solid #58a6ff;
+            padding: 12px 16px;
+            border-radius: 0 6px 6px 0;
+            margin: 12px 0;
+        }
+
+        .warning {
+            background: #3d2e00;
+            border-left: 4px solid #f1c40f;
+            padding: 12px 16px;
+            border-radius: 0 6px 6px 0;
+            margin: 12px 0;
+        }
+
+        a {
+            color: var(--accent2);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        footer {
+            text-align: center;
+            color: var(--muted);
+            margin-top: 50px;
+            padding: 20px 0;
+            border-top: 1px solid var(--border);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+
+        <h1>⛳ VR Mini-Golf</h1>
+        <p class="subtitle">Mobile VR Game Manual — CMPT 461 Immersive Computing</p>
+
+        <!-- ===== OVERVIEW ===== -->
+        <h2>1. Overview</h2>
+        <p>VR Mini-Golf is a mobile VR mini-golf game built with <strong>A-Frame</strong>. Play through two unique
+            courses using only your head movement — aim with gaze, charge power by tilting, and swing with a dwell-based
+            reticle. No controllers needed!</p>
+
+        <div class="card">
+            <strong>Key Features:</strong>
+            <ul>
+                <li>Two distinct golf courses with unique themes and obstacles</li>
+                <li>Gaze-based aiming and head-tilt power control</li>
+                <li>Stereoscopic VR mode for Google Cardboard / mobile VR headsets</li>
+                <li>Always-visible scoreboard HUD</li>
+                <li>Custom textured objects (ball, turf, obstacles, sky)</li>
+                <li>Sound effects and background music</li>
+                <li>Collision detection with walls and obstacles</li>
+                <li>Setup menu with difficulty, audio, and control options</li>
+            </ul>
+        </div>
+
+        <!-- ===== SETUP / INSTALL ===== -->
+        <h2>2. Setup & Installation</h2>
+
+        <h3>Option A: Run from a web server (recommended)</h3>
+        <ol>
+            <li>Download or clone the project folder</li>
+            <li>Open a terminal in the project root directory</li>
+            <li>Start a local web server:
+                <pre>npx serve .
+# or
+python3 -m http.server 8080</pre>
+            </li>
+            <li>Open the URL in your browser (e.g., <code>http://localhost:3000</code> or
+                <code>http://localhost:8080</code>)
+            </li>
+        </ol>
+
+        <h3>Option B: GitHub Pages</h3>
+        <ol>
+            <li>Push the project to a GitHub repository</li>
+            <li>Enable GitHub Pages in the repo settings (source: main branch, root folder)</li>
+            <li>Access the game at <code>https://&lt;username&gt;.github.io/&lt;repo-name&gt;/</code></li>
+        </ol>
+
+        <div class="tip">
+            <strong>💡 Tip:</strong> For mobile VR, open the game URL on your phone's browser (Chrome recommended), then
+            tap the VR goggles icon to enter stereoscopic mode.
+        </div>
+
+        <h3>Requirements</h3>
+        <table>
+            <tr>
+                <th>Requirement</th>
+                <th>Details</th>
+            </tr>
+            <tr>
+                <td>Browser</td>
+                <td>Chrome 90+, Firefox 90+, Safari 15+</td>
+            </tr>
+            <tr>
+                <td>Mobile VR</td>
+                <td>Google Cardboard or equivalent headset</td>
+            </tr>
+            <tr>
+                <td>Device</td>
+                <td>Smartphone with gyroscope (Android/iOS)</td>
+            </tr>
+            <tr>
+                <td>Network</td>
+                <td>Internet connection (to load A-Frame CDN)</td>
+            </tr>
+        </table>
+
+        <!-- ===== FILE STRUCTURE ===== -->
+        <h2>3. File Structure</h2>
+        <pre>vr-mini-golf/
+├── index.html              ← Main game (open this to play)
+├── manual.html             ← This manual
+├── README.md               ← Quick start guide
+└── assets/
+    └── textures/
+        ├── turf.png        ← Level 1 ground texture
+        ├── desert.png      ← Level 2 ground texture
+        ├── brick.png       ← Obstacle texture
+        ├── wood.png        ← Wall/ramp texture
+        ├── ball.png        ← Golf ball texture
+        └── sky.png         ← Sky panorama</pre>
+
+        <!-- ===== HOW TO PLAY ===== -->
+        <h2>4. How to Play</h2>
+
+        <h3>Game Flow</h3>
+        <ol>
+            <li><span class="badge badge-green">FLASH</span> Game starts with a flashscreen showing game title and
+                credits</li>
+            <li><span class="badge badge-blue">SETUP</span> Configure audio, difficulty, and controls on the setup
+                screen</li>
+            <li><span class="badge badge-yellow">PLAY</span> Play through Hole 1 and Hole 2, trying to minimize strokes
+            </li>
+            <li><span class="badge badge-green">SCORE</span> See your final score and rating at the end</li>
+        </ol>
+
+        <h3>Controls</h3>
+        <table>
+            <tr>
+                <th>Action</th>
+                <th>Control</th>
+                <th>Description</th>
+            </tr>
+            <tr>
+                <td><strong>Aim</strong></td>
+                <td>Look left / right</td>
+                <td>Turn your head (or mouse on desktop) to aim the shot direction. A yellow arrow shows your aim line.
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Power</strong></td>
+                <td>Tilt head forward <em>(Gaze+Tilt mode)</em></td>
+                <td>In Tilt mode, tilt your device/head forward to charge the power gauge. The more you tilt, the more
+                    power.</td>
+            </tr>
+            <tr>
+                <td><strong>Power</strong></td>
+                <td>Auto-charge <em>(Gaze Only mode)</em></td>
+                <td>In Gaze Only mode, power automatically charges while you aim. Time your swing!</td>
+            </tr>
+            <tr>
+                <td><strong>Swing</strong></td>
+                <td>Gaze at SWING button</td>
+                <td>Look at the green SWING circle above the ball. Hold your gaze for 1.5 seconds to execute the shot.
+                </td>
+            </tr>
+        </table>
+
+        <div class="warning">
+            <strong>⚠️ No hand controls:</strong> The entire game is played with head movement only. On desktop, use the
+            mouse to look around and click the SWING button.
+        </div>
+
+        <h3>Scoreboard HUD</h3>
+        <p>The scoreboard is always visible at the top of your view, showing:</p>
+        <ul>
+            <li><strong>Hole</strong> — Current hole number (1 or 2)</li>
+            <li><strong>Strokes</strong> — Number of swings taken on current hole</li>
+            <li><strong>Total</strong> — Cumulative strokes across all holes</li>
+            <li><strong>Par</strong> — Target number of strokes for this hole</li>
+        </ul>
+
+        <!-- ===== LEVELS ===== -->
+        <h2>5. Levels</h2>
+
+        <div class="card">
+            <h3>Hole 1 — Park Course</h3>
+            <ul>
+                <li><strong>Theme:</strong> Lush green park with grass turf</li>
+                <li><strong>Par:</strong> 3</li>
+                <li><strong>Obstacles:</strong> 2 stationary brick blocks</li>
+                <li><strong>Wind:</strong> Gentle left-to-right breeze</li>
+                <li><strong>Difficulty:</strong> Straight shot with minor obstacles</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h3>Hole 2 — Canyon Course</h3>
+            <ul>
+                <li><strong>Theme:</strong> Sandy desert canyon</li>
+                <li><strong>Par:</strong> 4</li>
+                <li><strong>Obstacles:</strong> 3 blocks + 1 moving obstacle</li>
+                <li><strong>Wind:</strong> Stronger, shifting wind</li>
+                <li><strong>Difficulty:</strong> Longer distance, offset hole, moving barriers</li>
+            </ul>
+        </div>
+
+        <!-- ===== SETUP OPTIONS ===== -->
+        <h2>6. Setup Options</h2>
+        <table>
+            <tr>
+                <th>Option</th>
+                <th>Values</th>
+                <th>Description</th>
+            </tr>
+            <tr>
+                <td>Background Music</td>
+                <td>On / Off</td>
+                <td>Toggle ambient background melody</td>
+            </tr>
+            <tr>
+                <td>Sound Effects</td>
+                <td>On / Off</td>
+                <td>Toggle swing, collision, and hole-in sounds</td>
+            </tr>
+            <tr>
+                <td>Difficulty</td>
+                <td>Easy / Hard</td>
+                <td>Hard mode increases wind strength and obstacle speed</td>
+            </tr>
+            <tr>
+                <td>Control Mode</td>
+                <td>Gaze Only / Gaze + Tilt</td>
+                <td>Gaze Only auto-charges power; Tilt mode uses head tilt for power</td>
+            </tr>
+        </table>
+
+        <!-- ===== SCORING ===== -->
+        <h2>7. Scoring</h2>
+        <p>Your goal is to complete each hole in as few strokes as possible. Each swing counts as one stroke.</p>
+        <table>
+            <tr>
+                <th>Rating</th>
+                <th>Condition</th>
+            </tr>
+            <tr>
+                <td>🌟 Amazing!</td>
+                <td>2+ strokes under total par</td>
+            </tr>
+            <tr>
+                <td>🏅 Great job!</td>
+                <td>At or under total par</td>
+            </tr>
+            <tr>
+                <td>👍 Nice game!</td>
+                <td>1-2 strokes over par</td>
+            </tr>
+            <tr>
+                <td>⛳ Keep practicing!</td>
+                <td>3+ strokes over par</td>
+            </tr>
+        </table>
+
+        <!-- ===== VR MODE ===== -->
+        <h2>8. VR / Stereoscopic Mode</h2>
+        <ol>
+            <li>Open the game on your mobile phone's browser</li>
+            <li>Tap the <strong>VR goggles icon</strong> (bottom-right of the screen)</li>
+            <li>Insert your phone into a Google Cardboard or compatible VR headset</li>
+            <li>The screen will split into stereoscopic view for each eye</li>
+            <li>Aim and play using head movements only</li>
+        </ol>
+
+        <!-- ===== TROUBLESHOOTING ===== -->
+        <h2>9. Troubleshooting</h2>
+        <table>
+            <tr>
+                <th>Issue</th>
+                <th>Solution</th>
+            </tr>
+            <tr>
+                <td>No VR button visible</td>
+                <td>Ensure you're using HTTPS (GitHub Pages) and a WebXR-compatible browser</td>
+            </tr>
+            <tr>
+                <td>No sound</td>
+                <td>Tap the screen once to unlock audio (browser autoplay policy). Check Setup menu for muted audio.
+                </td>
+            </tr>
+            <tr>
+                <td>Textures not loading</td>
+                <td>Ensure you're running via a web server, not opening the HTML file directly (<code>file://</code>
+                    protocol may block texture loading)</td>
+            </tr>
+            <tr>
+                <td>Laggy on mobile</td>
+                <td>Close other browser tabs and apps. Reduce screen brightness to help performance.</td>
+            </tr>
+            <tr>
+                <td>Head tracking not working</td>
+                <td>Ensure your device has a gyroscope and you've granted motion sensor permissions</td>
+            </tr>
+        </table>
+
+        <!-- ===== CREDITS ===== -->
+        <h2>10. Credits</h2>
+        <ul>
+            <li><strong>Developer:</strong> Vanshika Shyam</li>
+            <li><strong>Course:</strong> CMPT 461 — Immersive Computing, Trinity Western University</li>
+            <li><strong>Framework:</strong> <a href="https://aframe.io" target="_blank">A-Frame 1.4.2</a></li>
+            <li><strong>Audio:</strong> Procedurally generated using Web Audio API</li>
+            <li><strong>Textures:</strong> Custom generated for this project</li>
+        </ul>
+
+        <footer>
+            VR Mini-Golf &copy; 2026 Vanshika Shyam — CMPT 461 Final Project
+        </footer>
+
+    </div>
+</body>
+
+</html>
