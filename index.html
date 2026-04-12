@@ -813,12 +813,12 @@
       updateHUD();
 
       var angleRad = THREE.MathUtils.degToRad(GameState.aimAngle);
-      // Speed: at 100% power → 0.18 units/frame → travels ~10+ units
-      var speed = (GameState.power / 100) * 0.18;
+      // Speed: at 100% power the ball moves at 15 units/second
+      var speed = (GameState.power / 100) * 15;
 
       GameState.ballVelocity = {
         x: -Math.sin(angleRad) * speed,
-        y: 0.005,
+        y: 0.3,
         z: -Math.cos(angleRad) * speed
       };
 
@@ -890,7 +890,7 @@
     // =====================================================
     var BALL_RADIUS = 0.08;
     // Friction: ball retains this fraction of speed each second
-    var FRICTION_PER_SEC = 0.12; // strong friction so ball stops in 2-3 sec
+    var FRICTION_PER_SEC = 0.25; // ball keeps 25% speed per second, stops in ~3 sec
     var GRAVITY = -9.8;
     var BOUNCE_COOLDOWN = 0;
 
