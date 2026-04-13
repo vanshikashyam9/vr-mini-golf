@@ -6,6 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VR Mini-Golf — CMPT 461</title>
   <meta name="description" content="A mobile VR mini-golf game built with A-Frame for CMPT 461 Immersive Computing.">
+  <script src="https://cdn.jsdelivr.net/npm/webxr-polyfill@latest/build/webxr-polyfill.min.js"></script>
+  <script>
+    if (typeof WebXRPolyfill !== 'undefined') { new WebXRPolyfill(); }
+  </script>
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script>
     // Register components BEFORE scene parses
@@ -1168,8 +1172,71 @@
     // Custom VR button handler
     function enterVR() {
       var scene = document.getElementById('scene');
-      if (scene.enterVR) {
-        scene.enterVR();
+      var btn = document.getElementById('vr-btn');
+
+      // If already in stereo mode, exit
+      if (document.body.classList.contains('stereo-mode')) {
+        document.body.classList.remove('stereo-mode');
+        btn.textContent = '🥽 Enter VR';
+        // Remove the stereo CSS
+        var stereoStyle = document.getElementById('stereo-css');
+        if (stereoStyle) stereoStyle.remove();
+        return;
+      }
+
+      // Try A-Frame's native enterVR first
+      if (scene && scene.enterVR) {
+        scene.enterVR().then(function () {
+          console.log('Entered VR via A-Frame');
+        }).catch(function () {
+          // Fallback: manual stereoscopic split via CSS
+          enableManualStereo();
+        });
+      } else {
+        enableManualStereo();
+      }
+    }
+
+    function enableManualStereo() {
+      var btn = document.getElementById('vr-btn');
+      document.body.classList.add('stereo-mode');
+      btn.textContent = '❌ Exit VR';
+
+      // Inject stereoscopic CSS
+      if (!document.getElementById('stereo-css')) {
+        var style = document.createElement('style');
+        style.id = 'stereo-css';
+        style.textContent = `
+          .stereo-mode a-scene canvas {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 50% !important;
+            height: 100% !important;
+          }
+          .stereo-mode::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 50%;
+            width: 2px;
+            height: 100%;
+            background: #000;
+            z-index: 999999;
+          }
+          .stereo-mode #vr-btn {
+            bottom: 10px;
+            right: auto;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.9em;
+            padding: 8px 14px;
+          }
+          .stereo-mode .overlay {
+            width: 50% !important;
+          }
+        `;
+        document.head.appendChild(style);
       }
     }
 
