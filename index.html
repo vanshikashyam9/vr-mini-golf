@@ -613,10 +613,15 @@
       GameState.ballVelocity = { x: 0, y: 0, z: 0 };
       GameState.power = 0;
 
-      // Set wind
-      const w = GameState.settings.difficulty === 'hard' ? level.windHard : level.wind;
+      // Set difficulty effects
+      var isHard = GameState.settings.difficulty === 'hard';
+      var w = isHard ? level.windHard : level.wind;
       GameState.windX = w.x;
       GameState.windZ = w.z;
+      // Hard mode: more friction (ball stops sooner, need more precision)
+      GameState.frictionOverride = isHard ? 0.15 : 0.25;
+      // Hard mode: faster power oscillation (harder to time)
+      GameState.powerSpeed = isHard ? 2.2 : 1.2;
 
       // Ground
       const groundEl = document.getElementById('ground');
@@ -658,7 +663,8 @@
           obs.setAttribute('id', 'moving-obs-' + i);
           obs.dataset.moveAxis = o.moveAxis;
           obs.dataset.moveRange = o.moveRange;
-          obs.dataset.moveSpeed = o.moveSpeed;
+          // Hard mode: obstacles move 2x faster
+          obs.dataset.moveSpeed = isHard ? (o.moveSpeed * 2) : o.moveSpeed;
           obs.dataset.moveOrigin = o.pos.split(' ')[o.moveAxis === 'x' ? 0 : 2];
           obs.dataset.moveTime = '0';
         }
@@ -921,7 +927,8 @@
       }
 
       // Friction (frame-rate independent: multiply by friction^dt)
-      var frictionFactor = Math.pow(FRICTION_PER_SEC, dt);
+      var fric = GameState.frictionOverride || FRICTION_PER_SEC;
+      var frictionFactor = Math.pow(fric, dt);
       vel.x *= frictionFactor;
       vel.z *= frictionFactor;
 
@@ -1016,7 +1023,8 @@
         }
       } else {
         // Gaze mode: power oscillates up and down like a pendulum
-        GameState.power += GameState.powerDir * 1.2;
+        var spd = GameState.powerSpeed || 1.2;
+        GameState.power += GameState.powerDir * spd;
         if (GameState.power >= 100) {
           GameState.power = 100;
           GameState.powerDir = -1;
