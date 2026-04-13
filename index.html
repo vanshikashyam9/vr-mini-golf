@@ -213,6 +213,31 @@
       width: 100% !important;
       height: 100% !important;
     }
+
+    /* Make A-Frame's own VR button visible above overlays */
+    .a-enter-vr {
+      z-index: 9999999 !important;
+    }
+
+    /* Custom VR button */
+    #vr-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 9999999;
+      background: rgba(0, 0, 0, 0.7);
+      color: #fff;
+      border: 2px solid #fff;
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-size: 1.1em;
+      cursor: pointer;
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+
+    #vr-btn:hover {
+      background: rgba(50, 50, 50, 0.9);
+    }
   </style>
 </head>
 
@@ -280,6 +305,9 @@
     <div class="result-stat" id="go-rating"></div>
     <button class="next-btn" onclick="restartGame()">🔄 Play Again</button>
   </div>
+
+  <!-- ===== CUSTOM VR BUTTON ===== -->
+  <button id="vr-btn" onclick="enterVR()">🥽 Enter VR</button>
 
   <!-- ===== A-FRAME SCENE ===== -->
   <a-scene id="scene" vr-mode-ui="enabled: true" loading-screen="enabled: false"
@@ -1130,12 +1158,20 @@
 
     // Screen tap to swing (mobile fallback - only during gameplay)
     document.addEventListener('click', function (e) {
-      // Don't trigger if clicking on UI overlays
-      if (e.target.closest('.overlay') || e.target.closest('button')) return;
+      // Don't trigger if clicking on UI overlays or VR button
+      if (e.target.closest('.overlay') || e.target.closest('button') || e.target.id === 'vr-btn') return;
       if (GameState.phase === 'playing' && !GameState.ballMoving) {
         executeSwing();
       }
     });
+
+    // Custom VR button handler
+    function enterVR() {
+      var scene = document.getElementById('scene');
+      if (scene.enterVR) {
+        scene.enterVR();
+      }
+    }
 
   </script>
 </body>
